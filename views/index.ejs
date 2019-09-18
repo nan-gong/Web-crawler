@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title><%= name %></title>
+</head>
+<style>
+</style>
+
+<body>
+    <h1><%= name %></h1>
+    <div>
+        <div id="main" style="width: 600px;height:400px;">123</div>
+        <div id="submain" style="width: 600px;height:400px;">123</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/4.2.1/echarts-en.common.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script type="text/javascript">
+    
+        $.ajax({
+            type: 'POST',
+            url: '/fetch'
+        }).done(function (results) {
+            console.log('results', results); //=>params
+            const areaRange = ['西城', '东城', '海淀', '朝阳', '昌平', '通州', '大兴']
+            // 计算一、二、三居均价及面积
+            let oneRoomPrice = [];
+            let oneRoomArea = [];
+            let twoRoomPrice = [];
+            let twoRoomArea = [];
+            results.data.forEach(v => {
+                if (v.title.includes('1室')) {
+                    oneRoomPrice.push(parseInt(v.money))
+                    oneRoomArea.push(parseInt(v.area))
+                } else if (v.title.includes('2室')) {
+                    twoRoomPrice.push(parseInt(v.money))
+                    twoRoomArea.push(parseInt(v.area))
+                }
+            })
+
+            function average (data) {
+                return parseInt(data.reduce((a, b) => a + b) / data.length)
+            }
+
+            // 基于准备好的dom，初始化echarts实例
+            var myChart = echarts.init(document.getElementById('main'));
+            var pieChart = echarts.init(document.getElementById('submain'));
+
+            // 指定图表的配置项和数据
+            var option = {
+                color: ['#4cabce', '#e5323e'],
+                title: {
+                    text: '海淀区房屋租赁情况统计'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: ['均价', '面积']
+                },
+                xAxis: {
+                    axisTick: {show: true},
+                    data: ['一居', '两居']
+                },
+                yAxis: [{type: 'value'}],
+                series: [{
+                    name: '均价',
+                    type: 'bar',
+                    data: [average(oneRoomPrice), average(twoRoomPrice)]
+                }, {
+                    name: '面积',
+                    type: 'bar',
+                    data: [average(oneRoomArea) * 100, average(twoRoomArea) * 100]
+                }]
+            };
+
+            var pieOption = {
+                    backgroundColor: '#2c343c',
+
+                    title: {
+                        text: '北京各区域房源数量统计',
+                        left: 'center',
+                        top: 20,
+                        textStyle: {
+                            color: '#ccc'
+                        }
+                    },
+
+                    tooltip : {
+                        trigger: 'item',
+                        formatter: "{a} <br/>{b} : {c} ({d}%)"
+                    },
+
+                    visualMap: {
+                        show: false,
+                        min: 80,
+                        max: 600,
+                        inRange: {
+                            colorLightness: [0, 1]
+                        }
+                    },
+                    series : [
+                        {
+                            name:'访问来源',
+                            type:'pie',
+                            radius : '55%',
+                            center: ['50%', '50%'],
+                            data:results.count.filter(v => areaRange.includes(v.name)).sort(function (a, b) { return a.value - b.value; }),
+                            roseType: 'radius',
+                            label: {
+                                normal: {
+                                    textStyle: {
+                                        color: 'rgba(255, 255, 255, 0.3)'
+                                    }
+                                }
+                            },
+                            labelLine: {
+                                normal: {
+                                    lineStyle: {
+                                        color: 'rgba(255, 255, 255, 0.3)'
+                                    },
+                                    smooth: 0.2,
+                                    length: 10,
+                                    length2: 20
+                                }
+                            },
+                            itemStyle: {
+                                normal: {
+                                    color: '#c23531',
+                                    shadowBlur: 200,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            },
+
+                            animationType: 'scale',
+                            animationEasing: 'elasticOut',
+                            animationDelay: function (idx) {
+                                return Math.random() * 200;
+                            }
+                        }
+                    ]
+            };
+
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
+            pieChart.setOption(pieOption);
+        })
+    </script>
+</body>
+
+</html>
